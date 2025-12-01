@@ -1,3 +1,7 @@
+/********************************************
+ *  TRACK SYSTEM — BACKEND ENTRY FILE
+ ********************************************/
+
 require("dotenv").config();
 const express = require("express");
 const helmet = require("helmet");
@@ -6,60 +10,69 @@ const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 
-// Routes
+// Import Routes
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const countryRoutes = require("./routes/countryRoutes");
-// future: cityRoutes (when added)
-// future: departmentRoutes
-// etc...
+const cityRoutes = require("./routes/cityRoutes");
+const businessTypeRoutes = require("./routes/businessTypeRoutes");
+const classRoutes = require("./routes/classRoutes");
+const fileStatusRoutes = require("./routes/fileStatusRoutes");
+const tmFormRoutes = require("./routes/tmFormRoutes");
+const agentRoutes = require("./routes/agentRoutes");
+const customerRoutes = require("./routes/customerRoutes");
+const applicationRoutes = require("./routes/applicationRoutes");
+const hearingRoutes = require("./routes/hearingRoutes");
+const journalRoutes = require("./routes/journalRoutes");
+const renewalRoutes = require("./routes/renewalRoutes");
 
-// Connect to MongoDB
 connectDB();
-
 const app = express();
 
-/* -------------------------------
-   Global Middlewares (Security)
---------------------------------*/
-app.use(helmet()); // Secure HTTP headers
-app.use(cors()); // Allow frontend communication
-app.use(express.json()); // JSON body parser
-app.use(morgan("dev")); // Request logger
+// Global Middleware
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+app.use(morgan("dev"));
 
-/* ------------------------------------
-   Rate Limiter (Protection for Auth)
--------------------------------------*/
+// Rate Limiter
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 mins
+  windowMs: 15 * 60 * 1000,
   max: 100,
-  message: "Too many requests from this IP, please try again later",
+  message: "Too many login attempts, try again later."
 });
+
 app.use("/api/auth", authLimiter);
 
-/* ----------------------
-   API ROUTES
------------------------*/
-app.use("/api/auth", authRoutes);          // login
-app.use("/api/users", userRoutes);         // user create/list
-app.use("/api/countries", countryRoutes);  // country setup
-// app.use("/api/cities", cityRoutes);     // when added
+// API Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/countries", countryRoutes);
+app.use("/api/cities", cityRoutes);
+app.use("/api/business-types", businessTypeRoutes);
+app.use("/api/classes", classRoutes);
+app.use("/api/file-statuses", fileStatusRoutes);
+app.use("/api/tm-forms", tmFormRoutes);
+app.use("/api/agents", agentRoutes);
+app.use("/api/customers", customerRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/hearings", hearingRoutes);
+app.use("/api/journals", journalRoutes);
+app.use("/api/renewals", renewalRoutes);
 
-/* -------------------------------
-   Global Error Handler
---------------------------------*/
+
+
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(" Unhandled Error:", err);
+  console.error("UNHANDLED ERROR:", err);
   res.status(500).json({
     message: "Internal server error",
     error: err.message,
   });
 });
 
-/* -------------------------------
-   Start Server
---------------------------------*/
+// Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
-  console.log(` Server running on http://localhost:${PORT}`)
+  console.log(`Server running at http://localhost:${PORT}`)
 );
