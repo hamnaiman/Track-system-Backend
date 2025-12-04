@@ -34,7 +34,6 @@ const applicationSchema = new mongoose.Schema({
   ],
 
   trademark: { type: String, required: true, trim: true },
-
   goods: { type: String, trim: true },
 
   client: {
@@ -54,7 +53,19 @@ const applicationSchema = new mongoose.Schema({
 
   status: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "FileStatus", // already created in earlier modules
+    ref: "FileStatus",
+  },
+
+  // ===========================================
+  // REMINDER FIELDS (Required for Reminder Report)
+  // ===========================================
+  reminderDate: {
+    type: Date,
+  },
+
+  reminderRemark: {
+    type: String,
+    trim: true
   }
 
 }, { timestamps: true });

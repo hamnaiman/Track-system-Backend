@@ -25,6 +25,11 @@ const applicationRoutes = require("./routes/applicationRoutes");
 const hearingRoutes = require("./routes/hearingRoutes");
 const journalRoutes = require("./routes/journalRoutes");
 const renewalRoutes = require("./routes/renewalRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const reportRenewalRoutes = require("./routes/reportRenewalRoutes");
+const reminderReportRoutes = require("./routes/reminderReportRoutes");
+const monthlyJournalRoutes = require("./routes/monthlyJournalRoutes");
+
 
 connectDB();
 const app = express();
@@ -59,8 +64,10 @@ app.use("/api/applications", applicationRoutes);
 app.use("/api/hearings", hearingRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/renewals", renewalRoutes);
-
-
+app.use("/api/reports", reportRoutes);
+app.use("/api/reports/renewals", reportRenewalRoutes);
+app.use("/api/reports/reminders", reminderReportRoutes);
+app.use("/api/monthly-journals" , monthlyJournalRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
