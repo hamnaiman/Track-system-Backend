@@ -1,3 +1,5 @@
+// controllers/monthlyJournalController.js
+
 const MonthlyJournal = require("../models/monthlyJournalModel");
 
 // ➤ Add Monthly Journal Entry
@@ -46,12 +48,10 @@ exports.getAllMonthlyJournals = async (req, res) => {
 };
 
 
-// ➤ Delete entry
+// ➤ Delete Monthly Journal Entry
 exports.deleteMonthlyJournal = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const entry = await MonthlyJournal.findByIdAndDelete(id);
+    const entry = await MonthlyJournal.findByIdAndDelete(req.params.id);
 
     if (!entry) {
       return res.status(404).json({ message: "Entry not found" });
@@ -60,6 +60,33 @@ exports.deleteMonthlyJournal = async (req, res) => {
     res.json({
       success: true,
       message: "Entry deleted successfully"
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+// ---------------------------
+// 🔍 Search Manual Trademark in Monthly Journal
+// ---------------------------
+exports.searchMonthlyJournal = async (req, res) => {
+  try {
+    const { journalNumber, text, applicationNumber } = req.body;
+
+    let query = {};
+
+    if (journalNumber) query.journalNumber = journalNumber.trim();
+    if (applicationNumber) query.applicationNumber = applicationNumber.trim();
+    if (text) query.trademark = { $regex: text.trim(), $options: "i" };
+
+    const results = await MonthlyJournal.find(query).sort({ journalDate: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: results.length,
+      data: results
     });
 
   } catch (error) {

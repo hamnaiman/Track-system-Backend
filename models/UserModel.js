@@ -11,15 +11,13 @@ const permissionsSchema = new mongoose.Schema(
     view: { type: Boolean, default: null },
     setup: { type: Boolean, default: null }
   },
-  { _id: false } // Important: Prevent subdocument _id
+  { _id: false }
 );
 
 const userSchema = new mongoose.Schema(
   {
     customerCode: { type: String, required: true, trim: true, index: true },
-
     userId: { type: String, required: true, trim: true },
-
     fullName: { type: String, required: true, trim: true },
 
     email: {
@@ -39,35 +37,38 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
 
     failedAttempts: { type: Number, default: 0 },
-
     lockUntil: { type: Date, default: null },
 
-    // CLEAN override → no extra fields, no auto _id
     permissionsOverride: {
       type: permissionsSchema,
       default: {}
-    }
+    },
+
+    /* ✅ ✅ FORGOT PASSWORD + OTP SECURITY FIELDS (NEW) */
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date },
+
+    otpCode: { type: String },
+    otpExpire: { type: Date },
+    otpVerified: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
 
-// Make userId unique per customerCode
+// Unique userId per customer
 userSchema.index({ customerCode: 1, userId: 1 }, { unique: true });
 
-// Check lock state
+// Lock check
 userSchema.methods.isLocked = function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 };
 
-// Compute effective permissions
+// Permission merge
 userSchema.methods.getEffectivePermissions = function (rolePermissions = {}) {
   const overrides = this.permissionsOverride || {};
   const merged = { ...rolePermissions };
 
   Object.keys(overrides).forEach((key) => {
-    // Only override if boolean true/false
-    // null → ignore
-    // undefined → ignore
     if (overrides[key] === true || overrides[key] === false) {
       merged[key] = overrides[key];
     }
