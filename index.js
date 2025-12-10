@@ -32,6 +32,7 @@ const monthlyJournalRoutes = require("./routes/monthlyJournalRoutes");
 const journalCompareRoutes = require("./routes/journalCompareRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const logoRoutes = require("./routes/logoRoutes");
+const roleRoutes = require("./routes/roleRoutes");
 
 connectDB();
 const app = express();
@@ -97,6 +98,7 @@ app.use("/api/monthly-journals", monthlyJournalRoutes);
 app.use("/api/journal-compare", journalCompareRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/logo", logoRoutes);
+app.use("/api/roles", roleRoutes);
 
 /********************************************
  *  ❗ GLOBAL ERROR HANDLER

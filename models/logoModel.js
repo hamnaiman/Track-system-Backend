@@ -2,7 +2,10 @@ const mongoose = require("mongoose");
 
 const logoSchema = new mongoose.Schema(
   {
-    logoUrl: { type: String, required: true }
+    logo: {
+      data: Buffer,
+      contentType: String
+    }
   },
   { timestamps: true }
 );

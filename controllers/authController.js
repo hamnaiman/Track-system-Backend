@@ -1,7 +1,6 @@
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const User = require("../models/userModel");
-const Role = require("../models/roleModel");
 const generateToken = require("../security/generateToken");
 const sendEmail = require("../utils/sendEmail");
 
@@ -15,45 +14,60 @@ exports.login = async (req, res) => {
   try {
     const { customerCode, userId, password } = req.body;
 
-    if (!customerCode || !userId || !password)
+    if (!customerCode || !userId || !password) {
       return res.status(400).json({ message: "All fields required" });
-
-    const user = await User.findOne({ customerCode, userId }).populate("role");
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
-
-    if (!user.isActive)
-      return res.status(403).json({ message: "User inactive" });
-
-    if (user.isLocked())
-      return res.status(403).json({ message: "Account locked. Try later." });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      user.failedAttempts = (user.failedAttempts || 0) + 1;
-
-      if (user.failedAttempts >= MAX_FAILED)
-        user.lockUntil = new Date(Date.now() + LOCK_MINUTES * 60000);
-
-      await user.save();
-      return res.status(400).json({ message: "Wrong password" });
     }
 
+    const user = await User.findOne({ customerCode, userId }).populate("role");
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: "User is inactive" });
+    }
+
+    if (user.isLocked && user.isLocked()) {
+      return res.status(403).json({ message: "Account locked. Try later." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      user.failedAttempts = (user.failedAttempts || 0) + 1;
+
+      if (user.failedAttempts >= MAX_FAILED) {
+        user.lockUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
+      }
+
+      await user.save();
+      return res.status(400).json({ message: "Incorrect password" });
+    }
+
+    // ✅ Successful login
     user.failedAttempts = 0;
     user.lockUntil = null;
     await user.save();
 
     const token = generateToken(user);
 
+    const permissions = user.getEffectivePermissions
+      ? user.getEffectivePermissions(user.role ? user.role.permissions : {})
+      : [];
+
     res.json({
       success: true,
       token,
       user: {
         id: user._id,
+        userId: user.userId,
         fullName: user.fullName,
         email: user.email,
-        role: user.role?.roleName,
-      },
+        role: user.role ? user.role.roleName : null,
+        customerCode: user.customerCode,
+        permissions
+      }
     });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -87,7 +101,8 @@ exports.changePassword = async (req, res) => {
     user.password = await bcrypt.hash(newPassword, salt);
 
     await user.save();
-    res.json({ success: true, message: "Password updated" });
+    res.json({ success: true, message: "Password updated successfully" });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -111,7 +126,7 @@ exports.forgotPassword = async (req, res) => {
       .update(resetToken)
       .digest("hex");
 
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
@@ -126,6 +141,7 @@ exports.forgotPassword = async (req, res) => {
     await sendEmail(user.email, "Password Reset", message);
 
     res.json({ success: true, message: "Reset link sent to email" });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -143,11 +159,11 @@ exports.resetPassword = async (req, res) => {
 
     const user = await User.findOne({
       resetPasswordToken: resetToken,
-      resetPasswordExpire: { $gt: Date.now() },
+      resetPasswordExpire: { $gt: Date.now() }
     });
 
     if (!user)
-      return res.status(400).json({ message: "Token expired" });
+      return res.status(400).json({ message: "Token expired or invalid" });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(req.body.password, salt);
@@ -158,6 +174,7 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     res.json({ success: true, message: "Password reset successful" });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
