@@ -1,0 +1,15 @@
+// controllers/applicationController.js
+
+exports.getMyApplications = async (req, res) => {
+  try {
+    const customerId = req.user.customerId; // token se
+
+    const apps = await Application.find({ client: customerId })
+      .select("applicationNumber trademark")
+      .sort({ applicationNumber: 1 });
+
+    res.status(200).json(apps);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

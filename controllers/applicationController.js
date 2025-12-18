@@ -1,11 +1,27 @@
 const Application = require("../models/applicationModel");
 
+/* ================= USER ================= */
+exports.getMyApplications = async (req, res) => {
+  try {
+    const customerId = req.user.customerId; // authMiddleware se aata hai
+
+    const apps = await Application.find({ client: customerId })
+      .select("applicationNumber trademark")
+      .sort({ applicationNumber: 1 });
+
+    res.status(200).json(apps);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/* ================= ADMIN ================= */
+
 // CREATE
 exports.createApplication = async (req, res) => {
   try {
     const data = req.body;
 
-    // prevent duplicate application #
     const exist = await Application.findOne({
       applicationNumber: data.applicationNumber.trim()
     });
@@ -33,14 +49,10 @@ exports.getApplications = async (req, res) => {
     const { applicationNumber, client, trademark, fileNumber } = req.query;
 
     let filter = {};
-
     if (applicationNumber) filter.applicationNumber = applicationNumber;
     if (fileNumber) filter.fileNumber = fileNumber;
     if (trademark) filter.trademark = new RegExp(trademark, "i");
-
-    if (client) {
-      filter.client = client; // frontend will send customerId
-    }
+    if (client) filter.client = client;
 
     const apps = await Application.find(filter)
       .populate("client", "customerName")
@@ -51,7 +63,6 @@ exports.getApplications = async (req, res) => {
       count: apps.length,
       data: apps
     });
-
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
