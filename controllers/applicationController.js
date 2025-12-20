@@ -1,17 +1,23 @@
+const mongoose = require("mongoose");
 const Application = require("../models/applicationModel");
 
 /* ================= USER ================= */
 exports.getMyApplications = async (req, res) => {
   try {
-    const customerId = req.user.customerId; // authMiddleware se aata hai
+    if (!req.user || !req.user.customerId) {
+      return res.status(401).json({ message: "Unauthorized user" });
+    }
 
-    const apps = await Application.find({ client: customerId })
+    const apps = await Application.find({
+      client: req.user.customerId
+    })
       .select("applicationNumber trademark")
       .sort({ applicationNumber: 1 });
 
     res.status(200).json(apps);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("GET MY APPS ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -21,6 +27,39 @@ exports.getMyApplications = async (req, res) => {
 exports.createApplication = async (req, res) => {
   try {
     const data = req.body;
+
+    // REQUIRED FIELD CHECK
+    const requiredFields = [
+      "applicationNumber",
+      "fileNumber",
+      "dateOfFiling",
+      "wordOrLabel",
+      "classes",
+      "trademark",
+      "client"
+    ];
+
+    for (let field of requiredFields) {
+      if (!data[field]) {
+        return res.status(400).json({
+          message: `${field} is required`
+        });
+      }
+    }
+
+    // ObjectId validation
+    if (!mongoose.Types.ObjectId.isValid(data.client)) {
+      return res.status(400).json({
+        message: "Invalid client ID"
+      });
+    }
+
+    // Classes must be array
+    if (!Array.isArray(data.classes)) {
+      return res.status(400).json({
+        message: "Classes must be an array"
+      });
+    }
 
     const exist = await Application.findOne({
       applicationNumber: data.applicationNumber.trim()
@@ -35,11 +74,16 @@ exports.createApplication = async (req, res) => {
     const app = await Application.create(data);
 
     res.status(201).json({
+      success: true,
       message: "Application saved successfully",
       data: app
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("CREATE APPLICATION ERROR:", err);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: err.message
+    });
   }
 };
 
@@ -49,10 +93,17 @@ exports.getApplications = async (req, res) => {
     const { applicationNumber, client, trademark, fileNumber } = req.query;
 
     let filter = {};
+
     if (applicationNumber) filter.applicationNumber = applicationNumber;
     if (fileNumber) filter.fileNumber = fileNumber;
     if (trademark) filter.trademark = new RegExp(trademark, "i");
-    if (client) filter.client = client;
+
+    if (client) {
+      if (!mongoose.Types.ObjectId.isValid(client)) {
+        return res.status(400).json({ message: "Invalid client ID" });
+      }
+      filter.client = client;
+    }
 
     const apps = await Application.find(filter)
       .populate("client", "customerName")
@@ -64,31 +115,54 @@ exports.getApplications = async (req, res) => {
       data: apps
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("GET APPLICATIONS ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 // UPDATE
 exports.updateApplication = async (req, res) => {
   try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid application ID" });
+    }
+
     const updated = await Application.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
-      { new: true }
+      { new: true, runValidators: true }
     );
 
-    res.json({ message: "Application updated", data: updated });
+    if (!updated) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    res.json({
+      message: "Application updated",
+      data: updated
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("UPDATE APPLICATION ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 // DELETE
 exports.deleteApplication = async (req, res) => {
   try {
-    await Application.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid application ID" });
+    }
+
+    await Application.findByIdAndDelete(id);
+
     res.json({ message: "Application deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("DELETE APPLICATION ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
