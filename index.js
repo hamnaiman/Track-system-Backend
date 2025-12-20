@@ -1,16 +1,13 @@
-/********************************************
- *  TRACK SYSTEM — BACKEND ENTRY FILE
- ********************************************/
-
 require("dotenv").config();
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
+const path = require("path");
 const connectDB = require("./config/db");
 
-// Import Routes
+// ---------------- ROUTE IMPORTS ----------------
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const countryRoutes = require("./routes/countryRoutes");
@@ -32,9 +29,14 @@ const monthlyJournalRoutes = require("./routes/monthlyJournalRoutes");
 const journalCompareRoutes = require("./routes/journalCompareRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const logoRoutes = require("./routes/logoRoutes");
+const documentRoutes = require("./routes/documentRoutes"); // ✅ DOCUMENTS
 const roleRoutes = require("./routes/roleRoutes");
+const oppositionDocumentRoutes = require("./routes/oppositionDocumentRoutes");
+const oppositionFormEntryRoutes = require("./routes/oppositionFormEntryRoutes");
 
+// ---------------- DB CONNECT ----------------
 connectDB();
+
 const app = express();
 
 /********************************************
@@ -43,16 +45,17 @@ const app = express();
 app.use(helmet());
 
 /********************************************
- *  🌍 CORS (Frontend Connection Allowed)
+ *  🌍 CORS CONFIG
  ********************************************/
-const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigin =
+  process.env.FRONTEND_URL || "http://localhost:5173";
 
 app.use(
   cors({
     origin: allowedOrigin,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    credentials: true
   })
 );
 
@@ -65,13 +68,24 @@ app.use(express.json({ limit: "5mb" }));
 app.use(morgan("dev"));
 
 /********************************************
- *  🛑 RATE LIMITER (Login Protection)
+ *  📁 STATIC FILES (UPLOADS)
+ *  ⚠️ Used ONLY for logos / images
+ *  TM Documents are stored in DB as buffer
+ ********************************************/
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"))
+);
+
+/********************************************
+ *  🛑 RATE LIMITER (AUTH)
  ********************************************/
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  message: "Too many login attempts, try again later.",
+  message: "Too many login attempts, try again later."
 });
+
 app.use("/api/auth", authLimiter);
 
 /********************************************
@@ -98,16 +112,21 @@ app.use("/api/monthly-journals", monthlyJournalRoutes);
 app.use("/api/journal-compare", journalCompareRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/logo", logoRoutes);
+app.use("/api/documents", documentRoutes); // ✅ TM DOCUMENTS ROUTE
 app.use("/api/roles", roleRoutes);
+app.use("/api/opposition-documents", oppositionDocumentRoutes);
+
+app.use("/api/opposition/forms", oppositionFormEntryRoutes);
 
 /********************************************
  *  ❗ GLOBAL ERROR HANDLER
  ********************************************/
 app.use((err, req, res, next) => {
   console.error("UNHANDLED ERROR:", err);
-  return res.status(500).json({
+
+  res.status(500).json({
     message: "Internal server error",
-    error: err.message,
+    error: err.message
   });
 });
 

@@ -5,37 +5,54 @@ const fs = require("fs");
 
 exports.uploadLogo = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Logo file is required" });
+    // 1️⃣ File validation
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({
+        message: "Logo file is required"
+      });
     }
 
-    // Read image buffer and check dimensions
+    // 2️⃣ Read buffer with sharp
     const image = sharp(req.file.buffer);
     const metadata = await image.metadata();
 
+    // 3️⃣ Dimension check (same as before)
     if (metadata.width !== 210 || metadata.height !== 110) {
       return res.status(400).json({
         message: "Logo must be exactly 210×110 pixels"
       });
     }
 
-    // Generate file name
+    // 4️⃣ Ensure upload directory exists
+    const uploadDir = path.join(process.cwd(), "uploads", "logo");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // 5️⃣ Generate filename
     const fileName = `company_logo_${Date.now()}.png`;
-    const filePath = path.join("uploads/logo", fileName);
+    const relativePath = `/uploads/logo/${fileName}`;
+    const absolutePath = path.join(uploadDir, fileName);
 
-    // Save optimized png
-    await image.png({ quality: 90 }).toFile(filePath);
+    // 6️⃣ Save optimized PNG from BUFFER
+    await image
+      .png({ quality: 90 })
+      .toFile(absolutePath);
 
-    // Remove old logo from DB & file system
+    // 7️⃣ Remove old logo (DB + file)
     const old = await Logo.findOne();
-    if (old) {
-      const oldPath = path.join(__dirname, "..", old.logoUrl);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    if (old?.logoUrl) {
+      const oldFilePath = path.join(process.cwd(), old.logoUrl);
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
       await Logo.findByIdAndDelete(old._id);
     }
 
-    // Save new entry
-    const newLogo = await Logo.create({ logoUrl: filePath });
+    // 8️⃣ Save new logo entry
+    const newLogo = await Logo.create({
+      logoUrl: relativePath
+    });
 
     res.status(200).json({
       success: true,
@@ -53,12 +70,19 @@ exports.uploadLogo = async (req, res) => {
   }
 };
 
-// Fetch current logo
+// ---------------- GET LOGO ----------------
 exports.getLogo = async (req, res) => {
   try {
     const logo = await Logo.findOne();
-    res.json({ success: true, logo });
+    res.status(200).json({
+      success: true,
+      logo
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
   }
 };
