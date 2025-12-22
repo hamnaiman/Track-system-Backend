@@ -2,33 +2,45 @@ const mongoose = require("mongoose");
 const Application = require("../models/applicationModel");
 
 /* ================= USER ================= */
+/**
+ * GET /api/applications/my-applications
+ * Logged-in user apni applications dekhega
+ */
 exports.getMyApplications = async (req, res) => {
   try {
-    if (!req.user || !req.user.customerId) {
-      return res.status(401).json({ message: "Unauthorized user" });
+    // 🔐 authMiddleware se aa raha hai
+    const customerCode = req.user.customerCode;
+
+    if (!customerCode) {
+      return res.status(400).json({
+        message: "Customer code missing in token"
+      });
     }
 
+    // 🧠 NOTE:
+    // Application.client field USER ke liye customerCode store karta hai
     const apps = await Application.find({
-      client: req.user.customerId
+      client: customerCode
     })
-      .select("applicationNumber trademark")
+      .select("applicationNumber trademark classes status")
       .sort({ applicationNumber: 1 });
 
     res.status(200).json(apps);
   } catch (err) {
-    console.error("GET MY APPS ERROR:", err);
+    console.error("GET MY APPLICATIONS ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 /* ================= ADMIN ================= */
 
-// CREATE
+/**
+ * CREATE APPLICATION
+ */
 exports.createApplication = async (req, res) => {
   try {
     const data = req.body;
 
-    // REQUIRED FIELD CHECK
     const requiredFields = [
       "applicationNumber",
       "fileNumber",
@@ -47,14 +59,13 @@ exports.createApplication = async (req, res) => {
       }
     }
 
-    // ObjectId validation
+    // ✅ Admin ke liye client ObjectId hota hai
     if (!mongoose.Types.ObjectId.isValid(data.client)) {
       return res.status(400).json({
         message: "Invalid client ID"
       });
     }
 
-    // Classes must be array
     if (!Array.isArray(data.classes)) {
       return res.status(400).json({
         message: "Classes must be an array"
@@ -79,15 +90,16 @@ exports.createApplication = async (req, res) => {
       data: app
     });
   } catch (err) {
-    console.error("CREATE APPLICATION ERROR:", err);
+    console.error("CREATE APPLICATION ERROR:", err.message);
     res.status(500).json({
-      message: "Internal Server Error",
-      error: err.message
+      message: "Internal Server Error"
     });
   }
 };
 
-// GET ALL + SEARCH
+/**
+ * GET ALL APPLICATIONS (ADMIN)
+ */
 exports.getApplications = async (req, res) => {
   try {
     const { applicationNumber, client, trademark, fileNumber } = req.query;
@@ -115,12 +127,14 @@ exports.getApplications = async (req, res) => {
       data: apps
     });
   } catch (err) {
-    console.error("GET APPLICATIONS ERROR:", err);
+    console.error("GET APPLICATIONS ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// UPDATE
+/**
+ * UPDATE APPLICATION (ADMIN)
+ */
 exports.updateApplication = async (req, res) => {
   try {
     const { id } = req.params;
@@ -144,12 +158,14 @@ exports.updateApplication = async (req, res) => {
       data: updated
     });
   } catch (err) {
-    console.error("UPDATE APPLICATION ERROR:", err);
+    console.error("UPDATE APPLICATION ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// DELETE
+/**
+ * DELETE APPLICATION (ADMIN)
+ */
 exports.deleteApplication = async (req, res) => {
   try {
     const { id } = req.params;
@@ -162,7 +178,7 @@ exports.deleteApplication = async (req, res) => {
 
     res.json({ message: "Application deleted" });
   } catch (err) {
-    console.error("DELETE APPLICATION ERROR:", err);
+    console.error("DELETE APPLICATION ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };

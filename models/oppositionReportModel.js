@@ -5,8 +5,8 @@ const oppositionSchema = new mongoose.Schema(
     oppositionNumber: {
       type: String,
       required: true,
-      trim: true,
-      index: true
+      index: true,
+      trim: true
     },
 
     applicationNumber: {
@@ -15,9 +15,8 @@ const oppositionSchema = new mongoose.Schema(
     },
 
     oppositionType: {
-      type: String, // Applicant / Opponent
-      trim: true,
-      index: true
+      type: String, // Applicant / Opponent / etc
+      trim: true
     },
 
     status: {
@@ -27,19 +26,18 @@ const oppositionSchema = new mongoose.Schema(
 
     trademark: {
       type: String,
-      trim: true,
-      index: true
+      index: true,
+      trim: true
     },
 
-    trademarkJournal: {
+    trademarkJournalNumber: {
       type: String,
       trim: true
     },
 
-    client: {
+    clientId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
-      index: true
+      ref: "Customer"
     },
 
     filingDate: {

@@ -29,10 +29,14 @@ const monthlyJournalRoutes = require("./routes/monthlyJournalRoutes");
 const journalCompareRoutes = require("./routes/journalCompareRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const logoRoutes = require("./routes/logoRoutes");
-const documentRoutes = require("./routes/documentRoutes"); // ✅ DOCUMENTS
+const documentRoutes = require("./routes/documentRoutes"); 
 const roleRoutes = require("./routes/roleRoutes");
 const oppositionDocumentRoutes = require("./routes/oppositionDocumentRoutes");
 const oppositionFormEntryRoutes = require("./routes/oppositionFormEntryRoutes");
+const oppositionReportRoutes = require("./routes/oppositionReportRoutes");
+const oppositionReminderRoutes = require("./routes/oppositionReminderRoutes");
+const oppositionQueryRoutes = require("./routes/oppositionQueryRoutes");
+
 
 // ---------------- DB CONNECT ----------------
 connectDB();
@@ -112,11 +116,13 @@ app.use("/api/monthly-journals", monthlyJournalRoutes);
 app.use("/api/journal-compare", journalCompareRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/logo", logoRoutes);
-app.use("/api/documents", documentRoutes); // ✅ TM DOCUMENTS ROUTE
+app.use("/api/documents", documentRoutes); 
 app.use("/api/roles", roleRoutes);
 app.use("/api/opposition-documents", oppositionDocumentRoutes);
-
 app.use("/api/opposition/forms", oppositionFormEntryRoutes);
+app.use("/api/reports/opposition", oppositionReportRoutes);
+app.use("/api/opposition/reminders", oppositionReminderRoutes);
+app.use("/api/opposition", oppositionQueryRoutes);
 
 /********************************************
  *  ❗ GLOBAL ERROR HANDLER
