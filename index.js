@@ -60,7 +60,7 @@ app.use(
  *  🌍 CORS CONFIG
  ********************************************/
 const allowedOrigin =
-  process.env.FRONTEND_URL || "http://localhost:5173";
+  process.env.FRONTEND_URL || "http://localhost:5173"; https://track-system-frontend.vercel.app/
 
 app.use(
   cors({
