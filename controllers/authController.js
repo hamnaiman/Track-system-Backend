@@ -185,14 +185,25 @@ exports.forgotPassword = async (req, res) => {
       <a href="${resetUrl}">${resetUrl}</a>
     `;
 
-    await sendEmail(user.email, "Password Reset", message);
+    // 🔥 EMAIL SAFE BLOCK (YAHAN LAGNA HAI)
+    try {
+      await sendEmail(user.email, "Password Reset", message);
+    } catch (err) {
+      console.error("EMAIL FAILED:", err);
+      return res.status(500).json({
+        message: "Email service unavailable. Please try again later."
+      });
+    }
 
+    // ✅ Email sent successfully
     res.json({ success: true, message: "Reset link sent to email" });
 
   } catch (err) {
+    console.error("FORGOT PASSWORD ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
+
 
 /* ======================================================
    🔐 RESET PASSWORD (USER ONLY — UNCHANGED)
