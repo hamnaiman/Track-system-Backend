@@ -1,28 +1,36 @@
 // controllers/customerController.js
 
 const Customer = require("../models/customerModel");
-const bcrypt = require("bcryptjs");
 
 // Create Customer
 exports.createCustomer = async (req, res) => {
   try {
     const {
-      partyType, customerName, address,
-      city, country, phone, fax,
-      email, web, businessType, agent,
-      userName, password, contactPersons
+      partyType,
+      customerName,
+      address,
+      city,
+      country,
+      phone,
+      fax,
+      email,
+      web,
+      businessType,
+      agent,
+      contactPersons
     } = req.body;
 
     if (!customerName) {
       return res.status(400).json({ message: "Customer name is required" });
     }
 
-    const existing = await Customer.findOne({ customerName: customerName.trim() });
+    const existing = await Customer.findOne({
+      customerName: customerName.trim()
+    });
+
     if (existing) {
       return res.status(400).json({ message: "Customer already exists" });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     const customer = await Customer.create({
       partyType,
@@ -36,8 +44,6 @@ exports.createCustomer = async (req, res) => {
       web,
       businessType,
       agent,
-      userName,
-      password: hashedPassword,
       contactPersons
     });
 
@@ -47,7 +53,11 @@ exports.createCustomer = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Create Customer Error:", err);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 };
 
@@ -59,17 +69,20 @@ exports.getCustomers = async (req, res) => {
       .populate("country", "name")
       .populate("businessType", "name")
       .populate("agent", "agentName")
-      .select("-password")
       .sort({ customerName: 1 });
 
     res.status(200).json({
       success: true,
       count: customers.length,
-      data: customers,
+      data: customers
     });
 
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Get Customers Error:", err);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 };
 
@@ -78,20 +91,23 @@ exports.updateCustomer = async (req, res) => {
   try {
     const updateData = req.body;
 
-    if (updateData.password) {
-      updateData.password = await bcrypt.hash(updateData.password, 10);
-    }
-
     const customer = await Customer.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true }
     );
 
-    res.json({ message: "Customer updated", data: customer });
+    res.json({
+      message: "Customer updated successfully",
+      data: customer
+    });
 
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Update Customer Error:", err);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 };
 
@@ -99,9 +115,16 @@ exports.updateCustomer = async (req, res) => {
 exports.deleteCustomer = async (req, res) => {
   try {
     await Customer.findByIdAndDelete(req.params.id);
-    res.json({ message: "Customer deleted" });
+
+    res.json({
+      message: "Customer deleted successfully"
+    });
 
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Delete Customer Error:", err);
+    res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 };
